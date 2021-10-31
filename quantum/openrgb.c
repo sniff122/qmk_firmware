@@ -161,13 +161,13 @@ static const uint8_t openrgb_rgb_matrix_effects_indexes[]           = {
 #if defined RGB_MATRIX_KEYREACTIVE_ENABLED && defined ENABLE_RGB_MATRIX_SOLID_MULTISPLASH
     42,
 #endif
-#ifdef ENABLE_RGB_MODE_PIXEL_RAIN
+#ifdef ENABLE_RGB_MATRIX_PIXEL_RAIN
     43,
 #endif
-#ifdef ENABLE_RGB_MODE_PIXEL_FLOW
+#ifdef ENABLE_RGB_MATRIX_PIXEL_FLOW
     44,
 #endif
-#ifdef ENABLE_RGB_MODEL_PIXEL_FRACTAL
+#ifdef ENABLE_RGB_MATRIX_PIXEL_FRACTAL
     45,
 #endif
 };
@@ -363,12 +363,11 @@ void openrgb_direct_mode_set_single_led(uint8_t *data) {
     raw_hid_buffer[RAW_EPSIZE - 2] = OPENRGB_SUCCESS;
 }
 void openrgb_direct_mode_set_leds(uint8_t *data) {
-    const uint8_t first_led   = data[1];
-    const uint8_t number_leds = data[2];
+    const uint8_t number_leds = data[1];
 
     for (uint8_t i = 0; i < number_leds; i++) {
-        const uint8_t color_idx = first_led + i;
-        const uint8_t data_idx  = i * 3;
+        const uint8_t data_idx  = i * 4;
+        const uint8_t color_idx = data[data_idx + 2];
 
         g_openrgb_direct_mode_colors[color_idx].r = data[data_idx + 3];
         g_openrgb_direct_mode_colors[color_idx].g = data[data_idx + 4];
