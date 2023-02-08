@@ -15,9 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "quantum.h"
 #include "pass_sys.h"
-#include "lib/lib8tion/lib8tion.h"
 
 #define PASS_SIZE sizeof(pass_code) / sizeof(pass_code[0])
 #define PassIndicatorSTART 17

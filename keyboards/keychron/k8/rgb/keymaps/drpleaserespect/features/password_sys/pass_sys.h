@@ -17,6 +17,9 @@
 
 #pragma once
 
+#include "quantum.h"
+#include "lib/lib8tion/lib8tion.h"
+
 uint32_t get_millisecond_timer(void);
 bool pass_hook(keyrecord_t *record);
 void display_pass_index(void);

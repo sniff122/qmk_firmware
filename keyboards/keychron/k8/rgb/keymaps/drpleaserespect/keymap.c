@@ -20,7 +20,7 @@
 
 #include QMK_KEYBOARD_H
 #include "lib/lib8tion/lib8tion.h"
-#include "./password_sys/pass_sys.h"
+#include "./features/password_sys/pass_sys.h"
 
 // Each layer gets a name for readability, which is then used in the keymap matrix below.
 // The underscores don't mean anything - you can have a layer called STUFF or any other name.
@@ -35,20 +35,20 @@ enum layer_names {
 
 enum custom_keycodes {
   GM_MODE = SAFE_RANGE,
-  M_SHUT,
   S_CADET,
   P_LOCK,
+  M_SHUT,
 };
 
 
 bool init_eeprom = false; // Only Sets to True if EEPROM has been Reset
-bool Macro_Active = false;
 bool rgb_enabled = true;
 bool gui_keys_enabled = true;
+bool shutdown_macro_held = false;
+bool shutdown_initiated = false;
 
 
 uint16_t blink_timer;
-uint16_t Macro_Timer = 0; // Initialize Macro Timer Used for Macro Time Delayed Functions
 uint16_t macro_keycode; // Keycode of Macro
 
 
@@ -65,6 +65,10 @@ uint16_t macro_keycode; // Keycode of Macro
 #define MV_MACR MO(MACRO)
 
 #define SPACE_CA_STATE IS_LAYER_ON(SPACE_CA)
+#define ADDON_START    SPACE_CA
+#define ADDON_END      SPACE_CA
+#define FUNC_START     WIN_FN
+#define FUNC_END       MACRO
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     /*	Windows layout
@@ -140,6 +144,42 @@ uint32_t get_millisecond_timer(void) {
   return timer_read32();
 }
 
+
+uint16_t get_trans_key_origin(keypos_t keyposition){
+  uint8_t transk_origin_layer = layer_switch_get_layer(keyposition);
+  uint16_t transk_origin_keycode = keymap_key_to_keycode(
+    transk_origin_layer, keyposition
+  );
+  return transk_origin_keycode;
+}
+
+#ifdef DEFERRED_EXEC_ENABLE
+uint32_t shutdown_callback(uint32_t trigger_time, void *cb_arg) {
+  shutdown_initiated = true;
+  register_code(KC_PWR);
+  return 0;
+}
+
+void shutdown_indicator(void) {
+  if (shutdown_macro_held) {
+    uint8_t beat = beat8(255, 0); // Sawtooth Wave
+    // Sawtooth to Square Wave
+    if ((beat % 4) > 1) {
+      beat = 255;
+    }
+    else {
+      beat = 0;
+    }
+    if (!shutdown_initiated) {
+      rgb_matrix_set_color_all(beat, 0, 0);
+    }
+    else {
+      rgb_matrix_set_color_all(0, random8(), beat);
+    }
+  }
+}
+#endif
+
 void disable_rgb_untracked(bool status) {
   static HSV RGB_HISTORY_HSV;
   static uint8_t RGB_HISTORY_MODE;
@@ -194,6 +234,9 @@ void matrix_status_indicators(void) {
   // PASS SYSTEM DISPLAY HOOK
   display_pass_index();
 
+  // SHUTDOWN BLINK HOOK
+  shutdown_indicator();
+
   // -SECTION START- NKRO INDICATOR
   if (keymap_config.nkro) {
     rgb_matrix_set_color(1, RGB_BLUE);
@@ -214,20 +257,25 @@ void matrix_status_indicators(void) {
     uint8_t rows[4] = {5,5, 4, 4};    // Specific Coordinates for K8
     uint8_t col[4] = {1, 11, 0, 13};   // Specific Coordinates for K8
     uint8_t layer = get_highest_layer(layer_state);
-    if (layer > SPACE_CA) {
+    if (layer >= FUNC_START) {
+
       for (uint8_t index = 0; index < 4; ++index) {
-        uint16_t keycode = keymap_key_to_keycode(layer, (keypos_t){col[index],rows[index]});
-        if ((keycode == KC_TRNS)) {
+
+        uint16_t keycode = get_trans_key_origin((keypos_t){col[index],rows[index]});
+        if (keycode == KC_LGUI || keycode == KC_RGUI) {
           // GAME MODE
-          if (!gui_keys_enabled && index < 2){
+          if (!gui_keys_enabled && index < 2) {
             rgb_matrix_set_color(keys[index], beat_sin, 0, 0);
           }
+        }
+        if (keycode == KC_LSPO || keycode == KC_RSPC) {
           // SPACE CADET
-          if (SPACE_CA_STATE && index > 1){
+          if (SPACE_CA_STATE && index > 1) {
             rgb_matrix_set_color(keys[index], beat_sin, 0, 0);
           }
         }
       }
+      
     }
     else {
       for (uint8_t index = 0; index < 4; ++index) {
@@ -328,7 +376,7 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
             rgb_matrix_set_color(2, 0, beat_sin, 0); // ENABLED COLOR: GREEN
           }
 
-          // M SHUT MACRO
+          // M_SHUT MACRO
           rgb_matrix_set_color(43, beat_sin, 0, 0);
 
           // PASS LOCK BUTTON
@@ -380,39 +428,8 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     return false;
 }
 
-void Macro_Initialize(uint16_t keycode) {
-  macro_keycode = keycode;
-  Macro_Active = true;
-}
-
-void Macro_Start_Timer(void) {
-  Macro_Timer = timer_read();
-}
-
-void Macro_End(void) {
-  Macro_Active = false;
-  Macro_Timer = 0;
-}
-
-void Macro_functions(void) {
-  // Function For Time Delayed Macros
-  if (Macro_Active) {
-    switch(macro_keycode) {
-      case M_SHUT:
-        if (timer_elapsed(Macro_Timer) > 300) {
-          SEND_STRING("shutdown /s /t 0 /f /c deeznuts " SS_TAP(X_ENT));
-          Macro_End();
-          return;
-        }
-      default:
-        return;
-      }
-    }
-}
-
-
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-  // PASS SYSTEM KEY HOOK
+  // PASS SYSTEM KEY HOO
   bool pass_sys_hook = pass_hook(record);
   if (!pass_sys_hook) {
     return false;
@@ -447,14 +464,25 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
       return true;
     // MACROS
     case M_SHUT:
-      if (record->event.pressed) {
-        if (!Macro_Active) {
-          Macro_Initialize(keycode);
-          SEND_STRING(SS_LGUI("r"));
-          Macro_Start_Timer();
-        }
+      {
+          static deferred_token shutdown_token = INVALID_DEFERRED_TOKEN;
+          if (record->event.pressed) {
+            if (shutdown_token == INVALID_DEFERRED_TOKEN) {
+              shutdown_token = defer_exec(1000, shutdown_callback, NULL);
+            }
+            shutdown_macro_held = true;
+
+          }
+          else {
+            cancel_deferred_exec(shutdown_token);
+            shutdown_token = INVALID_DEFERRED_TOKEN;
+            shutdown_initiated = false;
+            unregister_code(KC_PWR);
+            shutdown_macro_held = false;
+
+          }
+          return true;
       }
-      return true;
     // SPACE CADET SYSTEM
     case S_CADET:
       if (record->event.pressed) {
@@ -480,7 +508,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
 void matrix_scan_user(void) {
   //matrix_status_indicators();
-  Macro_functions();
 
 }
 
