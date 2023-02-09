@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include "quantum.h"
+#include <quantum.h>
 #include "lib/lib8tion/lib8tion.h"
 
 uint32_t get_millisecond_timer(void);
