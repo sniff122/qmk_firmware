@@ -41,15 +41,14 @@ enum custom_keycodes {
 };
 
 
-bool init_eeprom = false; // Only Sets to True if EEPROM has been Reset
-bool rgb_enabled = true;
-bool gui_keys_enabled = true;
-bool shutdown_macro_held = false;
-bool shutdown_initiated = false;
+static bool init_eeprom = false; // Only Sets to True if EEPROM has been Reset
+static bool rgb_enabled = true;
+static bool gui_keys_enabled = true;
+static bool shutdown_macro_held = false;
+static bool shutdown_initiated = false;
 
 
-uint16_t blink_timer;
-uint16_t macro_keycode; // Keycode of Macro
+static uint16_t blink_timer;
 
 
 #define KC_TASK LGUI(KC_TAB)        // Task viewer
@@ -69,6 +68,7 @@ uint16_t macro_keycode; // Keycode of Macro
 #define ADDON_END      SPACE_CA
 #define FUNC_START     WIN_FN
 #define FUNC_END       MACRO
+
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     /*	Windows layout
@@ -139,6 +139,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     +-------------------------------------------------------------------------------------------+
     */
 };
+
 // get_millisecond_timer function for lib8tion
 uint32_t get_millisecond_timer(void) {
   return timer_read32();
@@ -234,8 +235,10 @@ void matrix_status_indicators(void) {
   // PASS SYSTEM DISPLAY HOOK
   display_pass_index();
 
+#ifdef DEFERRED_EXEC_ENABLE
   // SHUTDOWN BLINK HOOK
   shutdown_indicator();
+#endif
 
   // -SECTION START- NKRO INDICATOR
   if (keymap_config.nkro) {
@@ -297,7 +300,6 @@ void matrix_status_indicators(void) {
 bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     bool caps_override = false;
     uint8_t layer = get_highest_layer(layer_state);
-
     const uint16_t blocked_keys[] = {
       QK_BOOT, NK_TOGG, GM_MODE, M_SHUT, S_CADET, P_LOCK
     };
@@ -463,6 +465,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
       }
       return true;
     // MACROS
+#ifdef DEFERRED_EXEC_ENABLE
     case M_SHUT:
       {
           static deferred_token shutdown_token = INVALID_DEFERRED_TOKEN;
@@ -483,6 +486,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
           }
           return true;
       }
+#endif
     // SPACE CADET SYSTEM
     case S_CADET:
       if (record->event.pressed) {
