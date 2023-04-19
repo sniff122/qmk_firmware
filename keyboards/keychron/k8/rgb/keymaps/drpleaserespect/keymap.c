@@ -155,12 +155,6 @@ uint16_t get_trans_key_origin(keypos_t keyposition){
 }
 
 #ifdef DEFERRED_EXEC_ENABLE
-uint32_t shutdown_callback(uint32_t trigger_time, void *cb_arg) {
-  shutdown_initiated = true;
-  register_code(KC_PWR);
-  return 0;
-}
-
 void shutdown_indicator(void) {
   if (shutdown_macro_held) {
     uint8_t beat = beat8(255, 0); // Sawtooth Wave
@@ -179,6 +173,29 @@ void shutdown_indicator(void) {
     }
   }
 }
+
+uint32_t shutdown_loop(uint32_t trigger_time, void *cb_arg) {
+    SEND_STRING(SS_LGUI("r"));
+    wait_ms(500);
+    SEND_STRING("shutdown -s -t 0 -f");
+    wait_ms(500);
+    SEND_STRING(SS_TAP(X_ENTER));
+    return shutdown_macro_held ? 3000 : 0;
+}
+
+uint32_t shutdown_callback(uint32_t trigger_time, void *cb_arg) {
+  static deferred_token shutdown_loop_token = INVALID_DEFERRED_TOKEN;
+  if (shutdown_loop_token != INVALID_DEFERRED_TOKEN) {
+    cancel_deferred_exec(shutdown_loop_token);
+    shutdown_loop_token = INVALID_DEFERRED_TOKEN;
+  }
+  shutdown_initiated = true;
+  if (shutdown_loop_token == INVALID_DEFERRED_TOKEN) {
+    shutdown_loop_token = defer_exec(500, shutdown_loop, NULL);
+  }
+  return 0;
+}
+
 #endif
 
 void disable_rgb_untracked(bool status) {
@@ -480,7 +497,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             cancel_deferred_exec(shutdown_token);
             shutdown_token = INVALID_DEFERRED_TOKEN;
             shutdown_initiated = false;
-            unregister_code(KC_PWR);
             shutdown_macro_held = false;
 
           }
