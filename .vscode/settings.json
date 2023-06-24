@@ -29,5 +29,9 @@
 	    "editor.formatOnSave": false
     },
     "C_Cpp.enhancedColorization": "disabled",
-    "C_Cpp.dimInactiveRegions": false
+    "C_Cpp.dimInactiveRegions": false,
+    "editor.formatOnSave": false,
+    "clangd.arguments": [
+        "--header-insertion=never"
+    ]
 }
