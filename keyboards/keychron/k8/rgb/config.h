@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include "config_common.h"
-
 // Connects each switch in the dip switch to the GPIO pin of the MCU
 #define DIP_SWITCH_PINS { D4, D5 }
 
