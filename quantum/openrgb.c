@@ -23,6 +23,7 @@
 #include "openrgb.h"
 #include "raw_hid.h"
 #include "string.h"
+#include "keymap_introspection.h"
 #include <color.h>
 
 #if !defined(OPENRGB_DIRECT_MODE_STARTUP_RED)
