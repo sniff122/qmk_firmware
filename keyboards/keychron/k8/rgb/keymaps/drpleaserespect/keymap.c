@@ -21,6 +21,9 @@
 #include QMK_KEYBOARD_H
 #include "lib/lib8tion/lib8tion.h"
 #include "./features/password_sys/pass_sys.h"
+#include "eeprom_definitions.h"
+
+
 
 // Each layer gets a name for readability, which is then used in the keymap matrix below.
 // The underscores don't mean anything - you can have a layer called STUFF or any other name.
@@ -102,7 +105,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         _______, _______, _______ , _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,   _______,     _______,  _______,  _______,
         _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,    _______,     _______,  _______,  _______,
         _______, _______, _______, _______, _______, _______, _______, _______, _______, _______ , _______, _______,            _______,
-        KC_LSPO, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,          KC_RSPC,                         _______,
+        SC_LSPO, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,          SC_RSPC,                         _______,
         _______, _______, _______,                   _______,                                     _______, _______, _______,   _______,     _______, _______,  _______
     ),
   // FUNCTION LAYERS - FN LAYER
@@ -155,12 +158,6 @@ uint16_t get_trans_key_origin(keypos_t keyposition){
 }
 
 #ifdef DEFERRED_EXEC_ENABLE
-uint32_t shutdown_callback(uint32_t trigger_time, void *cb_arg) {
-  shutdown_initiated = true;
-  register_code(KC_PWR);
-  return 0;
-}
-
 void shutdown_indicator(void) {
   if (shutdown_macro_held) {
     uint8_t beat = beat8(255, 0); // Sawtooth Wave
@@ -179,6 +176,29 @@ void shutdown_indicator(void) {
     }
   }
 }
+
+uint32_t shutdown_loop(uint32_t trigger_time, void *cb_arg) {
+    SEND_STRING(SS_LGUI("r"));
+    wait_ms(500);
+    SEND_STRING("shutdown -s -t 0 -f");
+    wait_ms(500);
+    SEND_STRING(SS_TAP(X_ENTER));
+    return shutdown_macro_held ? 3000 : 0;
+}
+
+uint32_t shutdown_callback(uint32_t trigger_time, void *cb_arg) {
+  static deferred_token shutdown_loop_token = INVALID_DEFERRED_TOKEN;
+  if (shutdown_loop_token != INVALID_DEFERRED_TOKEN) {
+    cancel_deferred_exec(shutdown_loop_token);
+    shutdown_loop_token = INVALID_DEFERRED_TOKEN;
+  }
+  shutdown_initiated = true;
+  if (shutdown_loop_token == INVALID_DEFERRED_TOKEN) {
+    shutdown_loop_token = defer_exec(500, shutdown_loop, NULL);
+  }
+  return 0;
+}
+
 #endif
 
 void disable_rgb_untracked(bool status) {
@@ -271,7 +291,7 @@ void matrix_status_indicators(void) {
             rgb_matrix_set_color(keys[index], beat_sin, 0, 0);
           }
         }
-        if (keycode == KC_LSPO || keycode == KC_RSPC) {
+        if (keycode == SC_LSPO || keycode == SC_RSPC) {
           // SPACE CADET
           if (SPACE_CA_STATE && index > 1) {
             rgb_matrix_set_color(keys[index], beat_sin, 0, 0);
@@ -480,7 +500,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             cancel_deferred_exec(shutdown_token);
             shutdown_token = INVALID_DEFERRED_TOKEN;
             shutdown_initiated = false;
-            unregister_code(KC_PWR);
             shutdown_macro_held = false;
 
           }
