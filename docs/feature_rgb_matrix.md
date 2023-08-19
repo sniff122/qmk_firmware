@@ -386,7 +386,7 @@ Currently only 4 drivers are supported, but it would be trivial to support for m
 Define these arrays listing all the LEDs in your `<keyboard>.c`:
 
 ```c
-const is31_led __flash g_is31_leds[RGB_MATRIX_LED_COUNT] = {
+const is31_led PROGMEM g_is31_leds[RGB_MATRIX_LED_COUNT] = {
 /* Refer to IS31 manual for these locations
  *   driver
  *   |  R location
@@ -406,7 +406,7 @@ Eg `#define ISSI_MANUAL_SCALING 3`
 Then Define the array listing all the LEDs you want to override in your `<keyboard>.c`:
 
 ```c
-const is31_led __flash g_is31_scaling[ISSI_MANUAL_SCALING] = {
+const is31_led PROGMEM g_is31_scaling[ISSI_MANUAL_SCALING] = {
  *   LED Index
  *   |  R scaling
  *   |  |    G scaling
@@ -419,6 +419,70 @@ const is31_led __flash g_is31_scaling[ISSI_MANUAL_SCALING] = {
 ```
 
 Where LED Index is the position of the LED in the `g_is31_leds` array. The `scaling` value between 0 and 255 to be written to the Scaling Register.
+
+---
+
+### SLED1734X :id=sled1734X
+
+There is basic support for addressable RGB matrix lighting with the I2C SLED1734X RGB controller. To enable it, add this to your `rules.mk`:
+
+```make
+RGB_MATRIX_ENABLE = yes
+RGB_MATRIX_DRIVER = SLED1734X
+```
+
+You can use between 1 and 4 SLED1734X IC's. Do not specify `DRIVER_ADDR_<N>` defines for IC's that are not present on your keyboard. You can define the following items in `config.h`:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SLED_TIMEOUT` | (Optional) How long to wait for i2c messages, in milliseconds | 100 |
+| `SLED_PERSISTENCE` | (Optional) Retry failed messages this many times | 0 |
+| `DRIVER_COUNT` | (Required) How many RGB driver IC's are present | |
+| `RGB_MATRIX_LED_COUNT` | (Required) How many RGB lights are present across all drivers | |
+| `DRIVER_ADDR_1` | (Required) Address for the first RGB driver | |
+| `DRIVER_ADDR_2` | (Optional) Address for the second RGB driver | |
+| `DRIVER_ADDR_3` | (Optional) Address for the third RGB driver | |
+| `DRIVER_ADDR_4` | (Optional) Address for the fourth RGB driver | |
+
+Here is an example using 2 drivers.
+
+```c
+// This is a 7-bit address, that gets left-shifted and bit 0
+// set to 0 for write, 1 for read (as per I2C protocol)
+// The address will vary depending on your wiring:
+// 0b1110100 (0x74) AD <-> GND
+// 0b1110111 (0x77) AD <-> VCC
+// 0b1110101 (0x75) AD <-> SCL
+// 0b1110110 (0x76) AD <-> SDA
+#define DRIVER_ADDR_1 0b1110100
+#define DRIVER_ADDR_2 0b1110110
+
+#define DRIVER_COUNT 2
+#define DRIVER_1_LED_TOTAL 25
+#define DRIVER_2_LED_TOTAL 24
+#define RGB_MATRIX_LED_COUNT (DRIVER_1_LED_TOTAL + DRIVER_2_LED_TOTAL)
+```
+
+!> Note the parentheses, this is so when `RGB_MATRIX_LED_COUNT` is used in code and expanded, the values are added together before any additional math is applied to them. As an example, `rand() % (DRIVER_1_LED_TOTAL + DRIVER_2_LED_TOTAL)` will give very different results than `rand() % DRIVER_1_LED_TOTAL + DRIVER_2_LED_TOTAL`.
+
+For split keyboards using `RGB_MATRIX_SPLIT` with an LED driver, you can either have the same driver address or different driver addresses. If using different addresses, use `DRIVER_ADDR_1` for one and `DRIVER_ADDR_2` for the other one. Then, in `g_sled1734x_leds`, fill out the correct driver index (0 or 1). If using one address, use `DRIVER_ADDR_1` for both, and use index 0 for `g_sled1734x_leds`.
+
+Define these arrays listing all the LEDs in your `<keyboard>.c`:
+
+```c
+const sled1734x_led PROGMEM g_sled1734x_leds[RGB_MATRIX_LED_COUNT] = {
+/* Refer to SLED1734X manual for these locations
+ *   driver
+ *   |  R location
+ *   |  |      G location
+ *   |  |      |      B location
+ *   |  |      |      | */
+    {0, CA3_D, CA1_D, CA2_D},
+    ....
+}
+```
+
+Where `CZx_y` is the location of the LED in the matrix defined by [the datasheet](https://www.sonix.com.tw/files/1/637E852205EF6BC3E050007F01007792) and the header file `drivers/led/sled1734x.h`. The `driver` is the index of the driver you defined in your `config.h` (`0`, `1`, `2`, or `3`).
 
 ---
 
@@ -964,7 +1028,7 @@ The EEPROM for it is currently shared with the LED Matrix system (it's generally
 
 ### Indicators :id=indicators
 
-If you want to set custom indicators, such as an LED for Caps Lock, or layer indication, you can use the `rgb_matrix_indicators_kb` or `rgb_matrix_indicators_user` function for that:
+If you want to set custom indicators, such as an LED for Caps Lock, or layer indication, then you can use the `rgb_matrix_indicators_kb` function on the keyboard level source file, or `rgb_matrix_indicators_user` function in the user `keymap.c`.
 ```c
 bool rgb_matrix_indicators_kb(void) {
     if (!rgb_matrix_indicators_user()) {
