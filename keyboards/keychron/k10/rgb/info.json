@@ -3,7 +3,7 @@
     "manufacturer": "Keychron",
     "url": "https://www.keychron.com/products/keychron-k10-wireless-mechanical-keyboard",
     "processor": "SN32F248BF",
-    "maintainer": "qmk",
+    "maintainer": "churipputori",
     "bootloader": "sn32-dfu",
     "debounce": 1,
     "diode_direction": "COL2ROW",
