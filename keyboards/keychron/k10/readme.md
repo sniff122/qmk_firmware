@@ -13,4 +13,4 @@ See the [build environment setup](https://docs.qmk.fm/#/getting_started_build_to
 ## TODO:
 
 - [ ] Test on MacOS
-- [ ] Get caps/scroll indicators working
+- [ ] Get caps/num lock indicators working
