@@ -14,3 +14,4 @@ See the [build environment setup](https://docs.qmk.fm/#/getting_started_build_to
 
 - [ ] Test on MacOS
 - [ ] Get caps/num lock indicators working
+- [ ] VIA support
