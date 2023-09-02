@@ -5,7 +5,7 @@
     "processor": "SN32F248BF",
     "maintainer": "churipputori",
     "bootloader": "sn32-dfu",
-    "debounce": 1,
+    "debounce": 5,
     "diode_direction": "COL2ROW",
     "features": {
         "rgb_matrix": true,
