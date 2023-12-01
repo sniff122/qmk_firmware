@@ -451,7 +451,7 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-  // PASS SYSTEM KEY HOO
+  // PASS SYSTEM KEY HOOK
   bool pass_sys_hook = pass_hook(record);
   if (!pass_sys_hook) {
     return false;
