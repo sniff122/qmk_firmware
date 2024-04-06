@@ -100,6 +100,34 @@ bool dip_switch_update_user(uint8_t index, bool active){
   return true;
 }
 
+bool rgb_matrix_indicators_user(void) {
+    if (host_keyboard_led_state().num_lock) {
+        rgb_matrix_set_color(16, 255, 255, 255);
+    } else {
+        rgb_matrix_set_color(16, 0, 0, 0);
+    }
+
+    if (host_keyboard_led_state().caps_lock) {
+        rgb_matrix_set_color(17, 255, 255, 255);
+    } else {
+        rgb_matrix_set_color(17, 0, 0, 0);
+    }
+
+    if (layer_state_is(MAC_BASE) || layer_state_is(MAC_FN)) {
+        rgb_matrix_set_color(18, 255, 255, 255);
+    } else {
+        rgb_matrix_set_color(18, 0, 0, 0);
+    }
+
+    if (layer_state_is(WIN_BASE) || layer_state_is(WIN_FN)) {
+        rgb_matrix_set_color(19, 255, 255, 255);
+    } else {
+        rgb_matrix_set_color(19, 0, 0, 0);
+    }
+
+    return false;
+}
+
 void keyboard_post_init_user(void) {
   // Customise these values to desired behaviour
   //debug_enable=true;
